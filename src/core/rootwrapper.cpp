@@ -28,6 +28,14 @@ RootWrapper::RootWrapper(QString rootPath, QString shellId)
     , rootPath(std::move(rootPath))
     , shellId(std::move(shellId))
     , originalWorkingDirectory(QDir::current().absolutePath()) {
+	// RootWrapper outlives the application during normal shutdown.
+	QObject::connect(
+	    QCoreApplication::instance(),
+	    &QCoreApplication::aboutToQuit,
+	    this,
+	    &RootWrapper::removeTranslations
+	);
+
 	QObject::connect(
 	    QuickshellSettings::instance(),
 	    &QuickshellSettings::watchFilesChanged,
@@ -55,18 +63,28 @@ RootWrapper::~RootWrapper() {
 	if (this->generation != nullptr) {
 		this->generation->shutdown();
 	}
-	QCoreApplication::removeTranslator(&this->translator);
+	this->removeTranslations();
+}
+
+void RootWrapper::removeTranslations() {
+	if (QCoreApplication::instance() != nullptr) {
+		QCoreApplication::removeTranslator(&this->translator);
+		QCoreApplication::removeTranslator(&this->fallbackTranslator);
+	}
 }
 
 void RootWrapper::updateTranslations(QQmlEngine* engine) {
-	QCoreApplication::removeTranslator(&this->translator);
+	this->removeTranslations();
+	auto directory = QFileInfo(this->rootPath).dir().filePath("i18n");
+
+	// The source-language catalog supplies plurals even when a translation is missing.
+	if (this->fallbackTranslator.load("qml.qm", directory)) {
+		QCoreApplication::installTranslator(&this->fallbackTranslator);
+	}
+
 	if (!engine->uiLanguage().isEmpty()
-	    && this->translator.load(
-	        QLocale(engine->uiLanguage()),
-	        "qml",
-	        "_",
-	        QFileInfo(this->rootPath).dir().filePath("i18n")
-	    ))
+	    && this->translator.load(QLocale(engine->uiLanguage()), "qml", "_", directory)
+	    && this->translator.filePath() != this->fallbackTranslator.filePath())
 	{
 		QCoreApplication::installTranslator(&this->translator);
 	}

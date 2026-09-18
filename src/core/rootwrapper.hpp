@@ -27,6 +27,7 @@ private slots:
 	void updateTooling();
 
 private:
+	void removeTranslations();
 	void updateTranslations(QQmlEngine* engine);
 
 	QString rootPath;
@@ -34,7 +35,8 @@ private:
 	EngineGeneration* generation = nullptr;
 	QString originalWorkingDirectory;
 	QFileSystemWatcher configDirWatcher;
-	// Keep one catalog across overlapping engine generations. Qt translators are process-wide.
+	// Keep catalogs across overlapping engine generations. Qt translators are process-wide.
+	QTranslator fallbackTranslator;
 	QTranslator translator;
 	QMetaObject::Connection translationLanguageConnection;
 };

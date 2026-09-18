@@ -16,12 +16,14 @@ add_executable(translations translations.cpp)
 target_link_libraries(translations PRIVATE Qt::Core Qt::Test)
 target_compile_definitions(translations PRIVATE QS_BINARY="$<TARGET_FILE:quickshell>")
 add_dependencies(translations quickshell)
-add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/qml_ru.qm"
-	COMMAND Qt6::lrelease "${CMAKE_CURRENT_SOURCE_DIR}/translations/qml_ru.ts"
-		-qm "${CMAKE_CURRENT_BINARY_DIR}/qml_ru.qm"
-	DEPENDS "translations/qml_ru.ts"
-	VERBATIM
-)
-target_sources(translations PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/qml_ru.qm")
+foreach(language ru en)
+	add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/qml_${language}.qm"
+		COMMAND Qt6::lrelease "${CMAKE_CURRENT_SOURCE_DIR}/translations/qml_${language}.ts"
+			-qm "${CMAKE_CURRENT_BINARY_DIR}/qml_${language}.qm"
+		DEPENDS "translations/qml_${language}.ts"
+		VERBATIM
+	)
+	target_sources(translations PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/qml_${language}.qm")
+endforeach()
 add_test(NAME translations WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}" COMMAND translations)
 set_tests_properties(translations PROPERTIES TIMEOUT 30)
